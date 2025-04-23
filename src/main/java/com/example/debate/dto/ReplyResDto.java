@@ -1,0 +1,28 @@
+package com.example.debate.dto;
+
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+public class ReplyResDto {
+    Long replyId;
+    Long like;
+    Long dislike;
+    String isState;
+    String content;
+    String userName;
+    String createdAt;
+
+    @Builder
+    public ReplyResDto(Long replyId, Long like, Long dislike, String content, String isState, String userName, String createdAt) {
+        this.replyId = replyId;
+        this.like = like;
+        this.dislike = dislike;
+        this.content = content;
+        this.isState = isState;
+        this.userName = userName;
+        this.createdAt = createdAt;
+    }
+}

@@ -1,0 +1,160 @@
+package com.debate.service;
+
+import com.debate.dto.CommentReqDto;
+import com.debate.dto.DebateReqDto;
+import com.debate.dto.ReplyReqDto;
+import com.debate.entity.*;
+import com.debate.repository.TranslatedCommentRepository;
+import com.debate.repository.TranslatedDebateRepository;
+import com.debate.repository.TranslatedReplyRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+@RequiredArgsConstructor
+public class TranslationService {
+    @Value("${translation.api-key}")
+    private String apiKey;
+
+    private final TranslatedCommentRepository translatedCommentRepository;
+    private final TranslatedReplyRepository translatedReplyRepository;
+    private final TranslatedDebateRepository translatedDebateRepository;
+
+    private static final String API_URL = "https://api-free.deepl.com/v2/translate";
+
+    private final String[] targetLanguage = {"KO", "EN", "JA", "ZH", "DE", "FR", "ES", "RU"};
+
+    public Optional<String> translate(String text, String sourceLang, String targetLang) {
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+        body.add("auth_key", apiKey);
+        body.add("text", text);
+        body.add("source_lang", sourceLang.toUpperCase()); // ex: KO
+        body.add("target_lang", targetLang.toUpperCase()); // ex: EN
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(API_URL, request, Map.class);
+            Map<String, Object> result = response.getBody();
+
+            List<Map<String, String>> translations = (List<Map<String, String>>) result.get("translations");
+            return Optional.of(translations.get(0).get("text"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    @Async
+    public void translateDebate(Debate debate, DebateReqDto debateReqDto, Long debateId) {
+        for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
+            TranslatedDebate translatedDebate;
+            if (debateId == null) {
+                translatedDebate = new TranslatedDebate();
+            } else {
+                translatedDebate = translatedDebateRepository.
+                        findByDebate_DebateIdAndLanguage(debate.getDebateId(), language);
+            }
+            translatedDebate.setDebate(debate);
+            translatedDebate.setLanguage(language);
+
+            if (language.equals("KO")) {
+                translatedDebate.setContent(debateReqDto.getContent());
+                translatedDebate.setTitle(debateReqDto.getTitle());
+                translatedDebateRepository.save(translatedDebate);
+                continue;
+            }
+
+            Optional<String> translatedTitle = translate(
+                    debateReqDto.getTitle() , "KO", language);
+
+            Optional<String> translatedContent = translate(
+                    debateReqDto.getContent() , "KO", language);
+
+            if (translatedTitle.isEmpty() || translatedContent.isEmpty()) continue;
+
+            translatedDebate.setContent(translatedContent.get());
+            translatedDebate.setTitle(translatedTitle.get());
+            translatedDebateRepository.save(translatedDebate);
+        }
+    }
+
+    @Async
+    public void translateComment(Comment comment, CommentReqDto commentReqDto, Long commentId) {
+        for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
+            TranslatedComment translatedComment;
+            if (commentId == null) {
+                translatedComment = new TranslatedComment();
+            } else {
+                translatedComment = translatedCommentRepository.
+                        findByComment_CommentIdAndLanguage(comment.getCommentId(), language);
+            }
+            translatedComment.setComment(comment);
+            translatedComment.setLanguage(language);
+
+            if (commentReqDto.getLanguage().equals(language)) {
+                translatedComment.setContent(commentReqDto.getContent());
+                translatedCommentRepository.save(translatedComment);
+                continue;
+            }
+
+            Optional<String> translatedContent = translate(
+                    commentReqDto.getContent(), commentReqDto.getLanguage(), language);
+
+
+            if (translatedContent.isEmpty()) continue;
+
+            translatedComment.setContent(translatedContent.get());
+            translatedCommentRepository.save(translatedComment);
+        }
+    }
+
+    @Async
+    public void translateReply(Reply reply, ReplyReqDto replyReqDto, Long replyId) {
+        for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
+            TranslatedReply translatedReply;
+            if (replyId == null) {
+                translatedReply = new TranslatedReply();
+            } else {
+                translatedReply = translatedReplyRepository
+                        .findByReply_ReplyIdAndLanguage(replyId, language);
+            }
+            translatedReply.setLanguage(language);
+            translatedReply.setReply(reply);
+
+            if (replyReqDto.getLanguage().equals(language)) {
+                translatedReply.setContent(replyReqDto.getContent());
+                translatedReplyRepository.save(translatedReply);
+                continue;
+            }
+
+            Optional<String> translatedContent = translate(
+                    replyReqDto.getContent(), replyReqDto.getLanguage(), language);
+
+            if (translatedContent.isEmpty()) continue;
+
+            translatedReply.setContent(translatedContent.get());
+            translatedReplyRepository.save(translatedReply);
+        }
+    }
+
+
+}

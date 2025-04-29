@@ -24,7 +24,6 @@ public class TranslatedDebate {
     private String language;
 
     @Builder
-
     public TranslatedDebate(Long translationDebateId, Debate debate, String content, String title, String language) {
         this.translationDebateId = translationDebateId;
         this.debate = debate;

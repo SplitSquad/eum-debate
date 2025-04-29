@@ -142,10 +142,10 @@ public class VoteService {
         return ResponseEntity.ok(voteResDto);
     }
 
-    public ResponseEntity<?> getVotes(VoteReqDto voteReqDto) {
-        Debate debate = debateRepository.findById(voteReqDto.getDebateId()).get();
+    public ResponseEntity<?> getVotes(long debateId) {
+        Debate debate = debateRepository.findById(debateId).get();
 
-        List<Vote> voteList = voteRepository.findByDebate_DebateId(voteReqDto.getDebateId());
+        List<Vote> voteList = voteRepository.findByDebate_DebateId(debateId);
 
         Map<String, Double> percentMap =
                 calculateVotePercent(debate.getAgreeCnt(), debate.getDisagreeCnt());

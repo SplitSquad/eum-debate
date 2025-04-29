@@ -18,8 +18,8 @@ public class VoteController {
         return voteService.reactToVote(token, voteReqDto);
     }
 
-    @GetMapping
-    public ResponseEntity<?> getVotes(@RequestBody VoteReqDto voteReqDto) {
-        return voteService.getVotes(voteReqDto);
+    @GetMapping("/{debateId}")
+    public ResponseEntity<?> getVotes(@PathVariable Long debateId) {
+        return voteService.getVotes(debateId);
     }
 }

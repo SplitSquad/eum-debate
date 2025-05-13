@@ -103,6 +103,11 @@ public class DebateService {
     public ResponseEntity<?> write(DebateReqDto debateReqDto) {
         Debate debate = Debate.builder()
                 .category(debateReqDto.getCategory())
+                .views(0L)
+                .agreeCnt(0L)
+                .voteCnt(0L)
+                .commentCnt(0L)
+                .disagreeCnt(0L)
                 .build();
         debateRepository.save(debate);
 

@@ -6,7 +6,6 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
-@EnableAsync
 @ComponentScan(basePackages = {"com.debate", "config", "util"})
 public class DebateApplication {
 

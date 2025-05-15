@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import util.TranslationJob;
+import util.TranslationQueue;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -23,14 +25,13 @@ import java.util.*;
 @RequiredArgsConstructor
 public class DebateService {
     private final JwtUtil jwtUtil;
+    private final TranslationQueue translationQueue;
 
     private final UserRepository userRepository;
     private final DebateRepository debateRepository;
     private final TranslatedDebateRepository translatedDebateRepository;
     private final VoteRepository voteRepository;
     private final DebateReactionRepository debateReactionRepository;
-
-    private final TranslationService translationService;
 
     private Optional<User> verifyToken(String token) {    // 토큰 검증 함수
         try {
@@ -111,7 +112,7 @@ public class DebateService {
                 .build();
         debateRepository.save(debate);
 
-        translationService.translateDebate(debate, debateReqDto, null);
+        translationQueue.enqueue(new TranslationJob(debate, debateReqDto, null));
 
         return ResponseEntity.ok().build();
     }

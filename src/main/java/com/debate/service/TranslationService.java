@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import util.TranslationJob;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,16 @@ public class TranslationService {
 
     private final String[] targetLanguage = {"KO", "EN", "JA", "ZH", "DE", "FR", "ES", "RU"};
 
+    public void handleJob(TranslationJob job) {
+        if (job.getEntity() instanceof Debate) {
+            translateDebate((Debate) job.getEntity(), (DebateReqDto) job.getDto(), job.getOptionalId());
+        } else if (job.getEntity() instanceof Comment) {
+            translateComment((Comment) job.getEntity(), (CommentReqDto) job.getDto(), job.getOptionalId());
+        } else if (job.getEntity() instanceof Reply) {
+            translateReply((Reply) job.getEntity(), (ReplyReqDto) job.getDto(), job.getOptionalId());
+        }
+    }
+
     public Optional<String> translate(String text, String sourceLang, String targetLang) {
         RestTemplate restTemplate = new RestTemplate();
 
@@ -46,8 +57,8 @@ public class TranslationService {
         MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("auth_key", apiKey);
         body.add("text", text);
-        body.add("source_lang", sourceLang.toUpperCase()); // ex: KO
-        body.add("target_lang", targetLang.toUpperCase()); // ex: EN
+        body.add("source_lang", sourceLang.toUpperCase());
+        body.add("target_lang", targetLang.toUpperCase());
 
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
 
@@ -63,16 +74,12 @@ public class TranslationService {
         }
     }
 
-    @Async
     public void translateDebate(Debate debate, DebateReqDto debateReqDto, Long debateId) {
         for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
-            TranslatedDebate translatedDebate;
-            if (debateId == null) {
-                translatedDebate = new TranslatedDebate();
-            } else {
-                translatedDebate = translatedDebateRepository.
-                        findByDebate_DebateIdAndLanguage(debate.getDebateId(), language);
-            }
+            TranslatedDebate translatedDebate = (debateId == null)
+                    ? new TranslatedDebate()
+                    : translatedDebateRepository.findByDebate_DebateIdAndLanguage(debate.getDebateId(), language);
+
             translatedDebate.setDebate(debate);
             translatedDebate.setLanguage(language);
 
@@ -97,16 +104,12 @@ public class TranslationService {
         }
     }
 
-    @Async
     public void translateComment(Comment comment, CommentReqDto commentReqDto, Long commentId) {
         for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
-            TranslatedComment translatedComment;
-            if (commentId == null) {
-                translatedComment = new TranslatedComment();
-            } else {
-                translatedComment = translatedCommentRepository.
-                        findByComment_CommentIdAndLanguage(comment.getCommentId(), language);
-            }
+            TranslatedComment translatedComment = (commentId == null)
+                    ? new TranslatedComment()
+                    : translatedCommentRepository.findByComment_CommentIdAndLanguage(comment.getCommentId(), language);
+
             translatedComment.setComment(comment);
             translatedComment.setLanguage(language);
 
@@ -127,16 +130,12 @@ public class TranslationService {
         }
     }
 
-    @Async
     public void translateReply(Reply reply, ReplyReqDto replyReqDto, Long replyId) {
         for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
-            TranslatedReply translatedReply;
-            if (replyId == null) {
-                translatedReply = new TranslatedReply();
-            } else {
-                translatedReply = translatedReplyRepository
-                        .findByReply_ReplyIdAndLanguage(replyId, language);
-            }
+            TranslatedReply translatedReply = (replyId == null)
+                    ? new TranslatedReply()
+                    : translatedReplyRepository.findByReply_ReplyIdAndLanguage(replyId, language);
+
             translatedReply.setLanguage(language);
             translatedReply.setReply(reply);
 
@@ -155,6 +154,5 @@ public class TranslationService {
             translatedReplyRepository.save(translatedReply);
         }
     }
-
 
 }

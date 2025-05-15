@@ -15,7 +15,7 @@ public class TranslationQueue {
     private final BlockingQueue<TranslationJob> queue = new LinkedBlockingQueue<>();
 
     @PostConstruct
-    public void startWorker() {
+    public void startWorker() { // 큐 작업
         new Thread(() -> {
             while (true) {
                 try {

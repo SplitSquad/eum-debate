@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import util.TranslationJob;
+import util.TranslationQueue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +31,7 @@ public class CommentService {
     private final CommentReactionRepository commentReactionRepository;
 
     private final JwtUtil jwtUtil;
-    private final TranslationService translationService;
+    private final TranslationQueue translationQueue;
 
     private Optional<User> verifyToken(String token) {    // 토큰 검증 함수
         try {
@@ -72,7 +74,7 @@ public class CommentService {
         debate.setCommentCnt(debate.getCommentCnt() + 1);
         debateRepository.save(debate);
 
-        translationService.translateComment(comment, commentReqDto, null);
+        translationQueue.enqueue(new TranslationJob(comment, commentReqDto, null));
 
         return ResponseEntity.ok(commentResDto);
     }
@@ -147,7 +149,7 @@ public class CommentService {
             return ResponseEntity.badRequest().body("작성자만 수정 가능");
         }
 
-        translationService.translateComment(comment, commentReqDto, commentId);
+        translationQueue.enqueue(new TranslationJob(comment, commentReqDto, commentId));
 
         return ResponseEntity.ok(commentReqDto.getContent());
     }

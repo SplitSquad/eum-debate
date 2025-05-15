@@ -2,7 +2,7 @@ name: Debate CI to ECR
 on:
   push:
     branches:
-      - temp
+      - main
     paths:
       - '**'
   workflow_dispatch:

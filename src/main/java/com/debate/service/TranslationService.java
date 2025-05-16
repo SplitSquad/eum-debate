@@ -38,7 +38,7 @@ public class TranslationService {
 
     private final String[] targetLanguage = {"KO", "EN", "JA", "ZH", "DE", "FR", "ES", "RU"};
 
-    public void handleJob(TranslationJob job) {
+    public void handleJob(TranslationJob job) { // 맞는 번역 매서드 실행
         if (job.getEntity() instanceof Debate) {
             translateDebate((Debate) job.getEntity(), (DebateReqDto) job.getDto(), job.getOptionalId());
         } else if (job.getEntity() instanceof Comment) {

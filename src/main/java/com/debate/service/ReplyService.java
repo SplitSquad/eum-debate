@@ -77,13 +77,14 @@ public class ReplyService {
         comment.getDebate().setCommentCnt(comment.getDebate().getCommentCnt() + 1);
         debateRepository.save(comment.getDebate());
 
-        KafkaCommentDto kafkaCommentDto = KafkaCommentDto.builder()
-                .receiverId(comment.getUser().getUserId())
-                .senderId(user.get().getUserId())
-                .build();
+        if(!comment.getUser().getUserId().equals(user.get().getUserId())) {
+            KafkaCommentDto kafkaCommentDto = KafkaCommentDto.builder()
+                    .receiverId(comment.getUser().getUserId())
+                    .senderId(user.get().getUserId())
+                    .build();
 
-        kafkaTemplate.send("replyToComment", objectMapper.writeValueAsString(kafkaCommentDto));
-        System.out.println("카프카 전송 완료");
+            kafkaTemplate.send("replyToComment", objectMapper.writeValueAsString(kafkaCommentDto));
+        }
 
         translationQueue.enqueue(new TranslationJob(reply, replyReqDto, null));
 

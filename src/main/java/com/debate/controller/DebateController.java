@@ -53,4 +53,9 @@ public class DebateController {
                                             long userId, int page, int size){
         return debateService.getVotedDebate(token, userId, page, size);
     }
+
+    /*@GetMapping("/recommendation")
+    public ResponseEntity<?> recommendDebate(@RequestHeader("Authorization") String token){
+        return debateService.recommendDebate(token);
+    }*/
 }

@@ -4,6 +4,12 @@ import com.debate.dto.DebateReqDto;
 import com.debate.dto.DebateResDto;
 import com.debate.entity.*;
 import com.debate.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
 import util.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +17,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import util.TranslationJob;
 import util.TranslationQueue;
@@ -20,6 +25,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +38,9 @@ public class DebateService {
     private final TranslatedDebateRepository translatedDebateRepository;
     private final VoteRepository voteRepository;
     private final DebateReactionRepository debateReactionRepository;
+
+    @Value("${ai.url}")
+    String aiUrl;
 
     private Optional<User> verifyToken(String token) {    // 토큰 검증 함수
         try {
@@ -78,7 +87,7 @@ public class DebateService {
                 .orElse(null);
     }
 
-    private DebateResDto buildDebateResDto(Debate debate, String language) {
+    private DebateResDto DebateToDto(Debate debate, String language) {
         TranslatedDebate translatedDebate = translatedDebateRepository
                 .findByDebate_DebateIdAndLanguage(debate.getDebateId(), language);
 
@@ -99,6 +108,31 @@ public class DebateService {
                 .build();
 
         return dto;
+    }
+
+    private List<DebateResDto> transDebateToDto(List<TranslatedDebate> translatedDebateList) {
+        List<DebateResDto> dtoList = new ArrayList<>();
+        for(TranslatedDebate translatedDebate : translatedDebateList) {
+            Debate debate = translatedDebate.getDebate();
+
+            Map<String, Double> percentMap =
+                    calculateVotePercent(debate.getAgreeCnt(), debate.getDisagreeCnt());
+
+            DebateResDto dto = DebateResDto.builder()
+                    .title(translatedDebate.getTitle())
+                    .debateId(debate.getDebateId())
+                    .views(debate.getViews())
+                    .createdAt(debate.getCreatedAt())
+                    .voteCnt(debate.getVoteCnt())
+                    .agreePercent(percentMap.get("agreePercent"))
+                    .disagreePercent(percentMap.get("disagreePercent"))
+                    .commentCnt(debate.getCommentCnt())
+                    .category(debate.getCategory())
+                    .nation(getTopNationByDebateId(debate.getDebateId()))
+                    .build();
+            dtoList.add(dto);
+        }
+        return dtoList;
     }
 
     public ResponseEntity<?> write(DebateReqDto debateReqDto) {
@@ -148,7 +182,7 @@ public class DebateService {
         List<DebateResDto> debateResDtoList = new ArrayList<>();
 
         for(Debate debate : debateList) {
-            debateResDtoList.add(buildDebateResDto(debate, language));
+            debateResDtoList.add(DebateToDto(debate, language));
         }
         return ResponseEntity.ok(Map.of(
                 "debateList", debateResDtoList,
@@ -169,7 +203,7 @@ public class DebateService {
         List<DebateResDto> todayDebateResDtoList = new ArrayList<>();
 
         for (Debate debate : todayDebateList) {
-            todayDebateResDtoList.add(buildDebateResDto(debate, language));
+            todayDebateResDtoList.add(DebateToDto(debate, language));
         }
 
         DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
@@ -179,7 +213,7 @@ public class DebateService {
 
         Debate topDebate = debateRepository.findTopDebateInLastWeek(start, end);
 
-        DebateResDto topDebateResDto = buildDebateResDto(topDebate, language);
+        DebateResDto topDebateResDto = DebateToDto(topDebate, language);
 
         Debate balancedDebate = debateRepository.findMostBalancedDebateThisWeek(start, end);
 
@@ -190,7 +224,7 @@ public class DebateService {
             ));
         }
 
-        DebateResDto balancedDebateResDto = buildDebateResDto(balancedDebate, language);
+        DebateResDto balancedDebateResDto = DebateToDto(balancedDebate, language);
 
         return ResponseEntity.ok(Map.of(
                 "todayDebateList", todayDebateResDtoList,
@@ -234,26 +268,8 @@ public class DebateService {
         }
 
         long total = debateList.getTotalElements();
-        List<DebateResDto> debateResDtoList = new ArrayList<>();
-        for(TranslatedDebate translatedDebate : debateList) {
-            Map<String, Double> percentMap =
-                    calculateVotePercent(translatedDebate.getDebate().getAgreeCnt(),
-                            translatedDebate.getDebate().getDisagreeCnt());
+        List<DebateResDto> debateResDtoList = transDebateToDto(debateList.getContent());
 
-            DebateResDto debateResDto = DebateResDto.builder()
-                    .title(translatedDebate.getTitle())
-                    .debateId(translatedDebate.getDebate().getDebateId())
-                    .views(translatedDebate.getDebate().getViews())
-                    .createdAt(translatedDebate.getDebate().getCreatedAt())
-                    .voteCnt(translatedDebate.getDebate().getVoteCnt())
-                    .agreePercent(percentMap.get("agreePercent"))
-                    .disagreePercent(percentMap.get("disagreePercent"))
-                    .commentCnt(translatedDebate.getDebate().getCommentCnt())
-                    .category(translatedDebate.getDebate().getCategory())
-                    .nation(getTopNationByDebateId(translatedDebate.getDebate().getDebateId()))
-                    .build();
-            debateResDtoList.add(debateResDto);
-        }
         return ResponseEntity.ok(Map.of(
                 "debateList", debateResDtoList,
                 "total", total
@@ -364,11 +380,110 @@ public class DebateService {
         List<DebateResDto> debateResDtoList = new ArrayList<>();
 
         for(Vote vote : voteList){
-            debateResDtoList.add(buildDebateResDto(vote.getDebate(), language));
+            debateResDtoList.add(DebateToDto(vote.getDebate(), language));
         }
 
         return ResponseEntity.ok(Map.of(
                 "debateList", debateResDtoList,
                 "total", total));
+    }
+
+    public ResponseEntity<?> recommendDebate(String token) {
+        Optional<User> user = verifyToken(token);
+        if(user.isEmpty()) {
+            return ResponseEntity.badRequest().body("유효하지 않은 토큰");
+        }
+
+        long userId = user.get().getUserId();
+
+        String url = aiUrl + "/user/" + userId + "/preferences";
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+        if(!response.getStatusCode().is2xxSuccessful()) {
+            return ResponseEntity.status(response.getStatusCode()).body("유저 선호도 불러오기 실패");
+        }
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode;
+        try{
+            rootNode = objectMapper.readTree(response.getBody());
+        }catch(JsonProcessingException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("선호도 불러오기 실패");
+        }
+
+        JsonNode discussionPreferences = rootNode.path("discussion_preferences");
+        if(discussionPreferences.isMissingNode()) {
+            return ResponseEntity.badRequest().body("community_preferences 항목이 존재하지 않음");
+        }
+
+        Map<String, Double> preferencesMap = new HashMap<>();
+        discussionPreferences.fields().forEachRemaining(field -> {
+            preferencesMap.put(field.getKey(), field.getValue().doubleValue());
+        });
+
+        System.out.println(preferencesMap);
+
+        List<Map.Entry<String, Double>> sortedTag = preferencesMap.entrySet().stream()
+                .sorted(Map.Entry.<String, Double>comparingByValue().reversed()).toList();
+
+        Map.Entry<String, Double> bestTag = sortedTag.get(0);
+        Map.Entry<String, Double> secondTag = sortedTag.get(1);
+        Map.Entry<String, Double> thirdTag = sortedTag.get(2);
+
+        String language = user.get().getLanguage();
+        String sevenDaysAgo = LocalDate.now().minusDays(7).toString();
+
+        List<List<DebateResDto>> debateResDtoList = new ArrayList<>();
+
+        if(bestTag.getValue() >= 0.9){
+            List<TranslatedDebate> debateList = translatedDebateRepository
+                    .findRandomByTagAndLanguageAndRecentDayAndCount(
+                            bestTag.getKey(), language, sevenDaysAgo, 2
+                    );
+
+            List<DebateResDto> debateDto = transDebateToDto(debateList);
+            debateResDtoList.add(debateDto);
+
+            debateList = translatedDebateRepository
+                    .findRandomByTagAndLanguageAndRecentDayAndCount(
+                            secondTag.getKey(), language, sevenDaysAgo, 1
+                    );
+            debateDto = transDebateToDto(debateList);
+            debateResDtoList.add(debateDto);
+        }
+        else{
+            List<TranslatedDebate> debateList = translatedDebateRepository
+                    .findRandomByTagAndLanguageAndRecentDayAndCount(
+                            bestTag.getKey(), language, sevenDaysAgo, 1
+                    );
+
+            List<DebateResDto> debateDto = transDebateToDto(debateList);
+            debateResDtoList.add(debateDto);
+
+            debateList = translatedDebateRepository
+                    .findRandomByTagAndLanguageAndRecentDayAndCount(
+                            secondTag.getKey(), language, sevenDaysAgo, 1
+                    );
+            debateDto = transDebateToDto(debateList);
+            debateResDtoList.add(debateDto);
+
+            debateList = translatedDebateRepository
+                    .findRandomByTagAndLanguageAndRecentDayAndCount(
+                            thirdTag.getKey(), language, sevenDaysAgo, 1
+                    );
+            debateDto = transDebateToDto(debateList);
+            debateResDtoList.add(debateDto);
+        }
+        return ResponseEntity.ok(Map.of(
+                "debateList", debateResDtoList,
+                "analysis", preferencesMap
+        ));
     }
 }

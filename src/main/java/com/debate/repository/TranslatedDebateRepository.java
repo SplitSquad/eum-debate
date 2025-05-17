@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Map;
+
 @Repository
 public interface TranslatedDebateRepository extends JpaRepository<TranslatedDebate, Long> {
     TranslatedDebate findByDebate_DebateIdAndLanguage(Long debateId, String language);
@@ -38,4 +41,20 @@ public interface TranslatedDebateRepository extends JpaRepository<TranslatedDeba
                                                            @Param("keyword") String keyword,
                                                            @Param("language") String language,
                                                            Pageable pageable);
+
+
+    @Query(value =
+            "select td from translated_debate td " +
+            "join debate d on td.debate_id = d.debate_id " +
+            "where d.category = :tag " +
+            "and td.language = :language " +
+            "and d.created_at >= :sevenDaysAgo " +
+            "order by rand()" +
+            "limit :i "
+        ,nativeQuery = true)
+    List<TranslatedDebate> findRandomByTagAndLanguageAndRecentDayAndCount(
+            @Param("tag") String tag,
+            @Param("language") String language,
+            @Param("sevenDaysAgo") String sevenDaysAgo,
+            @Param("i") int i);
 }

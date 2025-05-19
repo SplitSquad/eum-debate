@@ -122,6 +122,7 @@ public class ReplyService {
                     .like(like)
                     .dislike(dislike)
                     .userName(reply.getUser().getName())
+                    .userId(reply.getUser().getUserId())
                     .createdAt(reply.getCreatedAt())
                     .isState(option)
                     .build();

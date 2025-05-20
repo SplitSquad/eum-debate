@@ -44,7 +44,7 @@ public interface TranslatedDebateRepository extends JpaRepository<TranslatedDeba
 
 
     @Query(value =
-            "select td from translated_debate td " +
+            "select td.* from translated_debate td " +
             "join debate d on td.debate_id = d.debate_id " +
             "where d.category = :tag " +
             "and td.language = :language " +

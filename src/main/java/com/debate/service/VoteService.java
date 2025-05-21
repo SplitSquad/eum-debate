@@ -87,6 +87,11 @@ public class VoteService {
         if(user.isEmpty()) {
             return ResponseEntity.badRequest().body("유효하지 않은 토큰");
         }
+
+        if(user.get().getBan() == 1){
+            return ResponseEntity.badRequest().body("차단된 유저");
+        }
+
         Debate debate = debateRepository.findById(voteReqDto.getDebateId()).get();
 
         Vote vote = voteRepository.findByDebate_DebateIdAndUser_UserId

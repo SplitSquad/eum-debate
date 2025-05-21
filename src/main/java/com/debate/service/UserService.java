@@ -1,5 +1,6 @@
 package com.debate.service;
 
+import com.debate.dto.KafkaBanDto;
 import com.debate.dto.KafkaUserDto;
 import com.debate.entity.User;
 import com.debate.repository.UserRepository;
@@ -79,5 +80,19 @@ public class UserService {
         }
         User user = userRepository.findById(kafkaUserDto.getUserId()).get();
         userRepository.delete(user);
+    }
+
+    @KafkaListener(topics="deactivate", groupId = "eum-debate")
+    public void updateBan(String message){
+        KafkaBanDto kafkaBanDto;
+        try{
+            kafkaBanDto = objectMapper.readValue(message, KafkaBanDto.class);
+        }catch (Exception e){
+            e.printStackTrace();
+            return;
+        }
+        User user = userRepository.findById(kafkaBanDto.getUserId()).get();
+        user.setBan(kafkaBanDto.getDeactivate());
+        userRepository.save(user);
     }
 }

@@ -282,6 +282,11 @@ public class DebateService {
         if (user.isEmpty()) {
             return ResponseEntity.badRequest().body("유효하지 않은 토큰");
         }
+
+        if(user.get().getBan() == 1){
+            return ResponseEntity.badRequest().body("차단된 유저");
+        }
+
         Debate debate = debateRepository.findById(debateId).get();
 
         DebateReaction debateReaction = debateReactionRepository
@@ -420,15 +425,13 @@ public class DebateService {
 
         JsonNode discussionPreferences = rootNode.path("discussion_preferences");
         if(discussionPreferences.isMissingNode()) {
-            return ResponseEntity.badRequest().body("community_preferences 항목이 존재하지 않음");
+            return ResponseEntity.badRequest().body("discussion_preferences 항목이 존재하지 않음");
         }
 
         Map<String, Double> preferencesMap = new HashMap<>();
         discussionPreferences.fields().forEachRemaining(field -> {
             preferencesMap.put(field.getKey(), field.getValue().doubleValue());
         });
-
-        System.out.println(preferencesMap);
 
         List<Map.Entry<String, Double>> sortedTag = preferencesMap.entrySet().stream()
                 .sorted(Map.Entry.<String, Double>comparingByValue().reversed()).toList();

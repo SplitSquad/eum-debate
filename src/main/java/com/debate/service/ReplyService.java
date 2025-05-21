@@ -1,5 +1,6 @@
 package com.debate.service;
 
+import com.debate.dto.CommentResDto;
 import com.debate.dto.KafkaCommentDto;
 import com.debate.dto.ReplyReqDto;
 import com.debate.dto.ReplyResDto;
@@ -232,5 +233,23 @@ public class ReplyService {
             }
             return ResponseEntity.ok("좋아요와 싫어요는 동시에 등록 불가");
         }
+    }
+
+    public ResponseEntity<?> getReplyById(String token, long replyId) {
+        Optional<User> user = verifyToken(token);
+        if(user.isEmpty()) {
+            return ResponseEntity.badRequest().body("유효하지 않은 토큰");
+        }
+        String language = user.get().getLanguage();
+
+        TranslatedReply translatedReply = translatedReplyRepository
+                .findByReply_ReplyIdAndLanguage(replyId, language);
+
+        CommentResDto commentResDto = CommentResDto.builder()
+                .content(translatedReply.getContent())
+                .userName(translatedReply.getReply().getUser().getName())
+                .createdAt(translatedReply.getReply().getCreatedAt())
+                .build();
+        return ResponseEntity.ok(commentResDto);
     }
 }

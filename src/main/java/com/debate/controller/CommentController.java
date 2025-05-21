@@ -43,4 +43,10 @@ public class CommentController {
                                             @RequestBody CommentReqDto commentReqDto){
         return  commentService.reactToComment(token, commentId, commentReqDto);
     }
+
+    @GetMapping("/{commentId}")
+    public ResponseEntity<?> getComment(@RequestHeader("Authorization") String token,
+                                        @PathVariable long commentId){
+        return commentService.getComment(token, commentId);
+    }
 }

@@ -243,4 +243,22 @@ public class CommentService {
             return ResponseEntity.ok("좋아요와 싫어요는 동시에 등록 불가");
         }
     }
+
+    public ResponseEntity<?> getComment(String token, long commentId) {
+        Optional<User> user = verifyToken(token);
+        if(user.isEmpty()) {
+            return ResponseEntity.badRequest().body("유효하지 않은 토큰");
+        }
+        String language = user.get().getLanguage();
+
+        TranslatedComment translatedComment = translatedCommentRepository
+                .findByComment_CommentIdAndLanguage(commentId, language);
+
+        CommentResDto commentResDto = CommentResDto.builder()
+                .content(translatedComment.getContent())
+                .userName(translatedComment.getComment().getUser().getName())
+                .createdAt(translatedComment.getComment().getCreatedAt())
+                .build();
+        return ResponseEntity.ok(commentResDto);
+    }
 }

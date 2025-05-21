@@ -65,6 +65,7 @@ public class UserService {
         user.setLanguage(kafkaUserDto.getLanguage());
         user.setRole(kafkaUserDto.getRole());
         user.setAddress(kafkaUserDto.getAddress());
+        user.setBan(0);
         userRepository.save(user);
     }
 

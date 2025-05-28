@@ -2,17 +2,19 @@ package com.debate.service;
 
 import com.debate.dto.CommentReqDto;
 import com.debate.dto.DebateReqDto;
+import com.debate.dto.KafkaCommentDto;
 import com.debate.dto.ReplyReqDto;
 import com.debate.entity.*;
-import com.debate.repository.TranslatedCommentRepository;
-import com.debate.repository.TranslatedDebateRepository;
-import com.debate.repository.TranslatedReplyRepository;
+import com.debate.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
@@ -34,11 +36,17 @@ public class TranslationService {
     private final TranslatedReplyRepository translatedReplyRepository;
     private final TranslatedDebateRepository translatedDebateRepository;
 
+    private final DebateRepository debateRepository;
+    private final CommentRepository commentRepository;
+    private final ReplyRepository replyRepository;
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+
     private static final String API_URL = "https://api-free.deepl.com/v2/translate";
 
     private final String[] targetLanguage = {"KO", "EN", "JA", "ZH", "DE", "FR", "ES", "RU"};
 
-    public void handleJob(TranslationJob job) { // 맞는 번역 매서드 실행
+    public void handleJob(TranslationJob job){ // 맞는 번역 매서드 실행
         if (job.getEntity() instanceof Debate) {
             translateDebate((Debate) job.getEntity(), (DebateReqDto) job.getDto(), job.getOptionalId());
         } else if (job.getEntity() instanceof Comment) {
@@ -96,7 +104,10 @@ public class TranslationService {
             Optional<String> translatedContent = translate(
                     debateReqDto.getContent() , "KO", language);
 
-            if (translatedTitle.isEmpty() || translatedContent.isEmpty()) continue;
+            if (translatedTitle.isEmpty() || translatedContent.isEmpty()) {
+                debateRepository.delete(debate);
+                break;
+            }
 
             translatedDebate.setContent(translatedContent.get());
             translatedDebate.setTitle(translatedTitle.get());
@@ -104,7 +115,7 @@ public class TranslationService {
         }
     }
 
-    public void translateComment(Comment comment, CommentReqDto commentReqDto, Long commentId) {
+    public void translateComment(Comment comment, CommentReqDto commentReqDto, Long commentId){
         for (String language : targetLanguage) { // 9개 언어로 번역해서 저장
             TranslatedComment translatedComment = (commentId == null)
                     ? new TranslatedComment()
@@ -123,7 +134,11 @@ public class TranslationService {
                     commentReqDto.getContent(), commentReqDto.getLanguage(), language);
 
 
-            if (translatedContent.isEmpty()) continue;
+            if (translatedContent.isEmpty()) {
+                kafkaTemplate.send("failComment", String.valueOf(comment.getUser().getUserId()));
+                commentRepository.delete(comment);
+                break;
+            }
 
             translatedComment.setContent(translatedContent.get());
             translatedCommentRepository.save(translatedComment);
@@ -148,7 +163,11 @@ public class TranslationService {
             Optional<String> translatedContent = translate(
                     replyReqDto.getContent(), replyReqDto.getLanguage(), language);
 
-            if (translatedContent.isEmpty()) continue;
+            if (translatedContent.isEmpty()){
+                kafkaTemplate.send("failComment", String.valueOf(reply.getUser().getUserId()));
+                replyRepository.delete(reply);
+                break;
+            }
 
             translatedReply.setContent(translatedContent.get());
             translatedReplyRepository.save(translatedReply);

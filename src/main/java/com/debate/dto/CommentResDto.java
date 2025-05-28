@@ -15,10 +15,11 @@ public class CommentResDto {
     String content;
     String userName;
     String createdAt;
+    String nation;
     long userId;
 
     @Builder
-    public CommentResDto(Long commentId, Long like, Long dislike, Long reply, String isState, String content, String userName, String createdAt, long userId) {
+    public CommentResDto(Long commentId, Long like, Long dislike, Long reply, String isState, String content, String userName, String createdAt, long userId, String nation) {
         this.commentId = commentId;
         this.like = like;
         this.dislike = dislike;
@@ -28,5 +29,6 @@ public class CommentResDto {
         this.userName = userName;
         this.createdAt = createdAt;
         this.userId = userId;
+        this.nation = nation;
     }
 }

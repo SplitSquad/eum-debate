@@ -73,6 +73,7 @@ public class CommentService {
                 .reply(0L)
                 .createdAt(comment.getCreatedAt())
                 .userName(comment.getUser().getName())
+                .nation(comment.getUser().getNation())
                 .build();
 
         debate.setCommentCnt(debate.getCommentCnt() + 1);
@@ -130,6 +131,7 @@ public class CommentService {
                     .reply(comment.getReplyCnt())
                     .createdAt(comment.getCreatedAt())
                     .userName(comment.getUser().getName())
+                    .nation(comment.getUser().getNation())
                     .userId(comment.getUser().getUserId())
                     .isState(option)
                     .build();
@@ -257,6 +259,8 @@ public class CommentService {
         CommentResDto commentResDto = CommentResDto.builder()
                 .content(translatedComment.getContent())
                 .userName(translatedComment.getComment().getUser().getName())
+                .nation(translatedComment.getComment().getUser().getNation())
+                .userId(translatedComment.getComment().getUser().getUserId())
                 .createdAt(translatedComment.getComment().getCreatedAt())
                 .build();
         return ResponseEntity.ok(commentResDto);

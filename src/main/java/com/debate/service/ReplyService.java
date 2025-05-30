@@ -87,6 +87,8 @@ public class ReplyService {
             KafkaCommentDto kafkaCommentDto = KafkaCommentDto.builder()
                     .receiverId(comment.getUser().getUserId())
                     .senderId(user.get().getUserId())
+                    .postId(comment.getDebate().getDebateId())
+                    .serviceType("debate")
                     .build();
 
             kafkaTemplate.send("replyToComment", objectMapper.writeValueAsString(kafkaCommentDto));

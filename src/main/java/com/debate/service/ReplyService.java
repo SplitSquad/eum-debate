@@ -68,6 +68,12 @@ public class ReplyService {
                 .build();
         reply = replyRepository.save(reply);
 
+        Vote vote = voteRepository
+                .findByDebate_DebateIdAndUser_UserId(
+                        comment.getDebate().getDebateId(), reply.getUser().getUserId());
+
+        String voteState = (vote != null) ? vote.getOption() : null;
+
         ReplyResDto replyResDto = ReplyResDto.builder()
                 .content(replyReqDto.getContent())
                 .like(0L)
@@ -76,6 +82,7 @@ public class ReplyService {
                 .userName(reply.getUser().getName())
                 .nation(reply.getUser().getNation())
                 .createdAt(reply.getCreatedAt())
+                .voteState(voteState)
                 .build();
 
         comment.setReplyCnt(comment.getReplyCnt() + 1);

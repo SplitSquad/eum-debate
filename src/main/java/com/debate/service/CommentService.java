@@ -66,6 +66,12 @@ public class CommentService {
                 .build();
         commentRepository.save(comment);
 
+        Vote vote = voteRepository
+                .findByDebate_DebateIdAndUser_UserId(
+                        comment.getDebate().getDebateId(), comment.getUser().getUserId());
+
+        String voteState = (vote != null) ? vote.getOption() : null;
+
         CommentResDto commentResDto = CommentResDto.builder()
                 .commentId(comment.getCommentId())
                 .content(commentReqDto.getContent())
@@ -75,6 +81,7 @@ public class CommentService {
                 .createdAt(comment.getCreatedAt())
                 .userName(comment.getUser().getName())
                 .nation(comment.getUser().getNation())
+                .voteState(voteState)
                 .build();
 
         debate.setCommentCnt(debate.getCommentCnt() + 1);

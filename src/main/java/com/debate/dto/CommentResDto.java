@@ -16,10 +16,11 @@ public class CommentResDto {
     String userName;
     String createdAt;
     String nation;
+    String voteState;
     long userId;
 
     @Builder
-    public CommentResDto(Long commentId, Long like, Long dislike, Long reply, String isState, String content, String userName, String createdAt, long userId, String nation) {
+    public CommentResDto(Long commentId, Long like, Long dislike, Long reply, String isState, String content, String userName, String createdAt, String voteState,long userId, String nation) {
         this.commentId = commentId;
         this.like = like;
         this.dislike = dislike;
@@ -30,5 +31,6 @@ public class CommentResDto {
         this.createdAt = createdAt;
         this.userId = userId;
         this.nation = nation;
+        this.voteState = voteState;
     }
 }

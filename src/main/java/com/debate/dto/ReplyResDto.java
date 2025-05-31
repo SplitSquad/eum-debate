@@ -15,10 +15,11 @@ public class ReplyResDto {
     String userName;
     String createdAt;
     String nation;
+    String voteState;
     long userId;
 
     @Builder
-    public ReplyResDto(Long replyId, Long like, Long dislike, String content, String isState, String userName, String createdAt, long userId, String nation) {
+    public ReplyResDto(Long replyId, Long like, Long dislike, String content, String isState, String userName, String createdAt, long userId, String nation, String voteState) {
         this.replyId = replyId;
         this.like = like;
         this.dislike = dislike;
@@ -28,5 +29,6 @@ public class ReplyResDto {
         this.createdAt = createdAt;
         this.userId = userId;
         this.nation = nation;
+        this.voteState = voteState;
     }
 }

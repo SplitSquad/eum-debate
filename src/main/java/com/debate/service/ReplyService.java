@@ -31,6 +31,7 @@ public class ReplyService {
     private final TranslatedReplyRepository translatedReplyRepository;
     private final CommentRepository commentRepository;
     private final ReplyReactionRepository replyReactionRepository;
+    private final VoteRepository voteRepository;
 
     private final JwtUtil jwtUtil;
     private final TranslationQueue translationQueue;
@@ -124,6 +125,12 @@ public class ReplyService {
                 option = replyReaction.getOption();
             }
 
+            Vote vote = voteRepository.findByDebate_DebateIdAndUser_UserId(
+                    reply.getComment().getDebate().getDebateId(), reply.getUser().getUserId()
+            );
+
+            String voteState = (vote != null) ? vote.getOption() : null;
+
             ReplyResDto replyResDto = ReplyResDto.builder()
                     .replyId(reply.getReplyId())
                     .content(translatedReply.getContent())
@@ -134,6 +141,7 @@ public class ReplyService {
                     .userId(reply.getUser().getUserId())
                     .createdAt(reply.getCreatedAt())
                     .isState(option)
+                    .voteState(voteState)
                     .build();
 
             replyResDtoList.add(replyResDto);

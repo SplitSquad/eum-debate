@@ -29,6 +29,7 @@ public class CommentService {
     private final DebateRepository debateRepository;
     private final TranslatedCommentRepository translatedCommentRepository;
     private final CommentReactionRepository commentReactionRepository;
+    private final VoteRepository voteRepository;
 
     private final JwtUtil jwtUtil;
     private final TranslationQueue translationQueue;
@@ -123,6 +124,12 @@ public class CommentService {
                 option = commentReaction.getOption();
             }
 
+            Vote vote = voteRepository
+                    .findByDebate_DebateIdAndUser_UserId(
+                            comment.getDebate().getDebateId(), comment.getUser().getUserId());
+
+            String voteState = (vote != null) ? vote.getOption() : null;
+
             CommentResDto commentResDto = CommentResDto.builder()
                     .commentId(comment.getCommentId())
                     .content(translatedComment.getContent())
@@ -134,6 +141,7 @@ public class CommentService {
                     .nation(comment.getUser().getNation())
                     .userId(comment.getUser().getUserId())
                     .isState(option)
+                    .voteState(voteState)
                     .build();
 
             commentResDtoList.add(commentResDto);
